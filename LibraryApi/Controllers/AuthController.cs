@@ -2,7 +2,7 @@
 using LibraryApi.DTO;
 using LibraryApi.Models;
 using LibraryApi.Services;
-using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -23,8 +23,13 @@ namespace LibraryApi.Controllers
         }
         //api/auth/register
         [HttpPost("register")]
+        [AllowAnonymous]
         public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto registerDto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState); // 400 data sent was invalid
+            }
             var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == registerDto.Email.ToLower());
             if (existingUser != null)
             {
@@ -39,7 +44,7 @@ namespace LibraryApi.Controllers
                 FullName = registerDto.FullName,
                 PasswordHash = passwordHash
             };
-            await _context.AddAsync(newUser);
+            await _context.Users.AddAsync(newUser);
             await _context.SaveChangesAsync();
 
             var token = _tokenService.GenerateToken(newUser);
@@ -54,11 +59,17 @@ namespace LibraryApi.Controllers
         }
         // api/auth/login
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<ActionResult<AuthResponseDto>> Login(LoginDto loginDto)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == loginDto.Email);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState); //
+            }
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == loginDto.Email.ToLower());
             if (user == null)
             {
+                // 401 credentials are missing or invalid
                 return Unauthorized(new { message = "Invalid email or password." });
             }
             var validPassword = BCrypt.Net.BCrypt.Verify(user.PasswordHash, loginDto.Password);
@@ -74,7 +85,7 @@ namespace LibraryApi.Controllers
                 ExpiresAt = DateTime.UtcNow.AddHours(expiryTime),
                 FullName = user.FullName,
                 Token = token
-            });
+            }); // 200 success
         }
     }
 }
