@@ -12,7 +12,20 @@ namespace LibraryApi.Controllers
         private readonly IBookRepository _bookRepository;
         public BooksController(IBookRepository bookRepository)
         {
-            _bookRepository=bookRepository;
+            _bookRepository = bookRepository;
+        }
+        [HttpGet]
+        public async Task<ActionResult<PagedResult<BookResponseDto>>> GetAllBooks([FromQuery]BookQueryParameters bookQueryParameters)
+        {
+            var (books,totalCount) = await _bookRepository.GetAllAsync(bookQueryParameters);
+            var pagedResult = new PagedResult<BookResponseDto>
+            {
+                Page = bookQueryParameters.Page,
+                PageSize = bookQueryParameters.PageSize,
+                TotalCount = totalCount,
+                Data = books.Select(b => MapToResponse(b))
+            };
+            return Ok(pagedResult);
         }
         [HttpPost]
         public async Task<ActionResult<BookResponseDto>>CreateBook(BookCreateDto createDto)

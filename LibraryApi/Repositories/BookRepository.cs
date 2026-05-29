@@ -1,5 +1,7 @@
 ﻿using LibraryApi.Data;
+using LibraryApi.DTO;
 using LibraryApi.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace LibraryApi.Repositories
 {
@@ -11,6 +13,38 @@ namespace LibraryApi.Repositories
             _context = context;
         }
 
+        public async Task<(IEnumerable<Book> Books, int TotalCount)>GetAllAsync(BookQueryParameters queryParameters)
+        {
+            // base query
+            var query = _context.Books.AsQueryable();
+            // apply filters
+            if(!string.IsNullOrWhiteSpace(queryParameters.SearchTitle))
+            {
+                query = query.Where(b => b.Title.Contains(queryParameters.SearchTitle));
+            }
+            if (queryParameters.PublishedYear.HasValue)
+            {
+                query=query.Where(b=>b.PublishedYear==queryParameters.PublishedYear);
+            }
+            if (!string.IsNullOrWhiteSpace(queryParameters.Genre))
+            {
+                query=query.Where(b=> b.Genre.ToLower() == queryParameters.Genre.ToLower());
+            }
+            var totalCount = await query.CountAsync();
+            // apply sorting
+            query=queryParameters.SortBy.ToLower() switch
+            {
+                "title"=>query.OrderBy(b=>b.Title),
+                "publishedyear" => query.OrderBy(b=>b.PublishedYear),
+                "genre"=> query.OrderBy(b => b.Genre),
+
+                //"createdat"=>query.OrderByDescending(b=>b.CreatedAt),
+                _ => query.OrderBy(b => b.Id)
+            };
+            var books = await query.Skip((queryParameters.Page - 1) * queryParameters.PageSize)
+                .Take(queryParameters.PageSize).ToListAsync();
+            return (books, totalCount);
+        }
         public async Task<Book> CreateBookAsync(Book book)
         {
             await _context.Books.AddAsync(book);
