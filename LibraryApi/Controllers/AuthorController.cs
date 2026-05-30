@@ -47,8 +47,8 @@ namespace LibraryApi.Controllers
             await _repository.SaveChangesAsync();
             return CreatedAtAction(nameof(GetAuthorById), new { id = added.Id },MaptoResponse(added));
         }
-        [HttpDelete]
-        public async Task<ActionResult<AuthorResponseDto>> DeleteAuthor(int id)
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> DeleteAuthor(int id)
         {
             var existing = await _repository.GetByIdAsync(id);
             if (existing == null)

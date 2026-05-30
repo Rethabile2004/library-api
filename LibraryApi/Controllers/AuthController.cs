@@ -26,10 +26,6 @@ namespace LibraryApi.Controllers
         [AllowAnonymous]
         public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto registerDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState); // 400 data sent was invalid
-            }
             var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == registerDto.Email.ToLower());
             if (existingUser != null)
             {
@@ -62,17 +58,13 @@ namespace LibraryApi.Controllers
         [AllowAnonymous]
         public async Task<ActionResult<AuthResponseDto>> Login(LoginDto loginDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState); //
-            }
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == loginDto.Email.ToLower());
             if (user == null)
             {
                 // 401 credentials are missing or invalid
                 return Unauthorized(new { message = "Invalid email or password." });
             }
-            var validPassword = BCrypt.Net.BCrypt.Verify(user.PasswordHash, loginDto.Password);
+            var validPassword = BCrypt.Net.BCrypt.Verify(loginDto.Password,user.PasswordHash);
             if (!validPassword)
             {
                 return Unauthorized(new { message = "Invalid email or password." });

@@ -38,12 +38,8 @@ namespace LibraryApi.Controllers
                 ISBN=createDto.ISBN,
             };
             await _bookRepository.CreateBookAsync(newBook);
-            var success = await _bookRepository.SaveChangesAsync();
+            await _bookRepository.SaveChangesAsync();
 
-            if (!success)
-            {
-                return StatusCode(500, "Failed to save changes.");
-            }
             return CreatedAtAction(nameof(GetBookById), new { id = newBook.Id }, MapToResponse(newBook));
         }
         [HttpGet("{id}")]
@@ -59,12 +55,8 @@ namespace LibraryApi.Controllers
             var book = await _bookRepository.GetByIdAsync(id);
             if (book == null) return NotFound();
             await _bookRepository.DeleteBookAsync(book);
-            var success = await _bookRepository.SaveChangesAsync();
+            await _bookRepository.SaveChangesAsync();
 
-            if (!success)
-            {
-                return StatusCode(500, "Failed to save changes.");
-            }
             return NoContent();
         }
         [HttpPut("{id}")]
@@ -78,12 +70,8 @@ namespace LibraryApi.Controllers
             existingBook.Title = book.Title;
 
             await _bookRepository.UpdateBookAsync(existingBook);
-            var success = await _bookRepository.SaveChangesAsync();
+            await _bookRepository.SaveChangesAsync();
 
-            if (!success)
-            {
-                return StatusCode(500, "Failed to save changes.");
-            }
             return NoContent();
         }
         private static BookResponseDto MapToResponse(Book book)
