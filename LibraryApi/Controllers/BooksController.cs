@@ -1,12 +1,15 @@
 ﻿using LibraryApi.DTO;
 using LibraryApi.Models;
 using LibraryApi.Repositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace LibraryApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class BooksController:ControllerBase
     {
         private readonly IBookRepository _bookRepository;
@@ -17,7 +20,8 @@ namespace LibraryApi.Controllers
         [HttpGet]
         public async Task<ActionResult<PagedResult<BookResponseDto>>> GetAllBooks([FromQuery]BookQueryParameters bookQueryParameters)
         {
-            var (books,totalCount) = await _bookRepository.GetAllAsync(bookQueryParameters);
+            var userId = GetCurrentUserId();
+            var (books,totalCount) = await _bookRepository.GetAllAsync(bookQueryParameters, userId);
             var pagedResult = new PagedResult<BookResponseDto>
             {
                 Page = bookQueryParameters.Page,
@@ -45,14 +49,16 @@ namespace LibraryApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<BookResponseDto>> GetBookById(int id)
         {
-            var book = await _bookRepository.GetByIdAsync(id);
+            var userId = GetCurrentUserId();
+            var book = await _bookRepository.GetByIdAsync(id, userId);
             if (book == null) return NotFound();
             return Ok(MapToResponse(book!));
         }
         [HttpDelete("{id}")]
         public async Task<ActionResult>DeleteBook(int id)
         {
-            var book = await _bookRepository.GetByIdAsync(id);
+            var userId = GetCurrentUserId();
+            var book = await _bookRepository.GetByIdAsync(id, userId);
             if (book == null) return NotFound();
             await _bookRepository.DeleteBookAsync(book);
             await _bookRepository.SaveChangesAsync();
@@ -62,7 +68,8 @@ namespace LibraryApi.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult> UpdateBook(int id, BookCreateDto book)
         {
-            var existingBook = await _bookRepository.GetByIdAsync(id);
+            var userId = GetCurrentUserId();
+            var existingBook = await _bookRepository.GetByIdAsync(id, userId);
             if (existingBook == null) return NotFound();
             existingBook.ISBN = book.ISBN;
             existingBook.Genre = book.Genre;
@@ -74,6 +81,10 @@ namespace LibraryApi.Controllers
 
             return NoContent();
         }
+        private int GetCurrentUserId()
+        {
+            return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        }
         private static BookResponseDto MapToResponse(Book book)
         {
             return new BookResponseDto
@@ -82,7 +93,10 @@ namespace LibraryApi.Controllers
                 Id = book.Id,
                 PublishedYear = book.PublishedYear,
                 Title = book.Title,
-                ISBN=book.ISBN
+                ISBN=book.ISBN,
+                AuthorBio=book.Author?.Bio,
+                AuthorName=book.Author?.Name,
+                AuthorId=book.AuthorId
             };
         }
     }

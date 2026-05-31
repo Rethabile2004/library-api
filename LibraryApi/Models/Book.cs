@@ -16,5 +16,9 @@ namespace LibraryApi.Models
         [Required]
         [MaxLength(50)]
         public string Genre { get; set; } = string.Empty;
+        public Author? Author { get; set; }
+        public int AuthorId { get; set; }
+        public User? User {  get; set; }
+        public int? UserId { get; set; }
     }
 }

@@ -12,11 +12,11 @@ namespace LibraryApi.Repositories
         {
             _context = context;
         }
-
-        public async Task<(IEnumerable<Book> Books, int TotalCount)>GetAllAsync(BookQueryParameters queryParameters)
+        public async Task<(IEnumerable<Book> Books, int TotalCount)>GetAllAsync(BookQueryParameters queryParameters,int userId)
         {
             // base query
-            var query = _context.Books.AsQueryable();
+            var query = _context.Books.Include(a=>a.Author).AsQueryable();
+            query = query.Where(b => b.Id == userId);
             // apply filters
             if(!string.IsNullOrWhiteSpace(queryParameters.SearchTitle))
             {
@@ -57,9 +57,10 @@ namespace LibraryApi.Repositories
             return Task.CompletedTask;
         }
 
-        public async Task<Book?> GetByIdAsync(int id)
+        public async Task<Book?> GetByIdAsync(int id, int userId)
         {
-            return await _context.Books.FindAsync(id);
+            return await _context.Books.Include(a => a.Author).
+                FirstOrDefaultAsync(b => b.Id == id && b.UserId == userId);
         }
 
         public async Task<bool> SaveChangesAsync()

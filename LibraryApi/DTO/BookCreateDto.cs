@@ -17,5 +17,6 @@ namespace LibraryApi.DTO
         [Required(ErrorMessage = "ISBN is required.")]
         [RegularExpression(@"^\d{10}(\d{3})?$", ErrorMessage = "ISBN must be 10 or 13 digits.")]
         public string ISBN { get; set; } = string.Empty;
+        public int? AuthorId { get; set; }
     }
 }
