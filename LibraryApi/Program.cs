@@ -19,6 +19,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
+builder.Services.AddScoped<IBorrowBookRepository, BorrowBookRepository>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
