@@ -9,7 +9,6 @@ namespace LibraryApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
     public class BooksController:ControllerBase
     {
         private readonly IBookRepository _bookRepository;
@@ -32,6 +31,7 @@ namespace LibraryApi.Controllers
             return Ok(pagedResult);
         }
         [HttpPost]
+        [Authorize]
         public async Task<ActionResult<BookResponseDto>> CreateBook(BookCreateDto createDto)
         {
             var authorExists = await _bookRepository.AuthorExistsAsync(createDto.AuthorId);
@@ -63,7 +63,8 @@ namespace LibraryApi.Controllers
             if (book == null) return NotFound();
             return Ok(MapToResponse(book!));
         }
-        [HttpDelete("{id}")]
+        [Authorize]
+        [HttpDelete("{id}")] 
         public async Task<ActionResult>DeleteBook(int id)
         {
             var userId = GetCurrentUserId();
@@ -74,6 +75,7 @@ namespace LibraryApi.Controllers
 
             return NoContent();
         }
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<ActionResult> UpdateBook(int id, BookCreateDto book)
         {
