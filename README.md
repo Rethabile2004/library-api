@@ -1,11 +1,8 @@
 
-That Swagger UI looks clean. Here's the README:
-
----
 
 # LibraryAPI
 
-A library management REST API built with ASP.NET Core Web API — featuring book and author management, JWT authentication, a borrowing system, pagination, filtering, and structured logging.
+A library management REST API built with ASP.NET Core Web API - featuring book and author management, JWT authentication, a borrowing system, pagination, filtering, and structured logging.
 
 ---
 
@@ -21,19 +18,19 @@ A library management REST API built with ASP.NET Core Web API — featuring book
 
 ## Features
 
-- JWT authentication — register, login, token-based access
+- JWT authentication - register, login, token-based access
 - Author and book management with full CRUD
-- Borrowing system — borrow, return, and view borrow history
-- Duplicate borrow protection — a book cannot be borrowed twice simultaneously
-- User-scoped borrowing — users only see and manage their own borrow records
-- DTO pattern — request and response models separated from database models
-- Repository pattern — database logic decoupled from controllers
-- Filtering — books by genre, title keyword, and published year
-- Sorting — by title, genre, or published year
-- Pagination — configurable page size across all list endpoints
-- Global exception handling — consistent ProblemDetails responses
-- Structured logging — every request and auth event logged with Serilog
-- Data validation — enforced via Data Annotations on request DTOs
+- Borrowing system - borrow, return, and view borrow history
+- Duplicate borrow protection - a book cannot be borrowed twice simultaneously
+- User-scoped borrowing - users only see and manage their own borrow records
+- DTO pattern - request and response models separated from database models
+- Repository pattern - database logic decoupled from controllers
+- Filtering - books by genre, title keyword, and published year
+- Sorting - by title, genre, or published year
+- Pagination - configurable page size across all list endpoints
+- Global exception handling - consistent ProblemDetails responses
+- Structured logging - every request and auth event logged with Serilog
+- Data validation - enforced via Data Annotations on request DTOs
 
 ---
 
@@ -41,7 +38,7 @@ A library management REST API built with ASP.NET Core Web API — featuring book
 
 ```
 LibraryAPI/
-├── Controllers/          # HTTP layer — request handling and responses
+├── Controllers/          # HTTP layer - request handling and responses
 ├── Data/                 # AppDbContext
 ├── DTOs/                 # Request and response models
 ├── Exceptions/           # Custom exception types
@@ -59,7 +56,7 @@ LibraryAPI/
 
 | Entity | Description |
 |---|---|
-| `User` | Registered user — can borrow and return books |
+| `User` | Registered user - can borrow and return books |
 | `Author` | Book author with name and biography |
 | `Book` | Library book belonging to an author |
 | `BorrowRecord` | Tracks borrow and return dates per user per book |
@@ -191,7 +188,7 @@ Attempting to borrow a book that is already borrowed returns `409 Conflict`.
 This project was built as an independent exercise after completing the guided TaskFlow API, applying the same patterns from scratch in a new domain:
 
 - Designing one-to-many and many-to-many adjacent relationships in EF Core
-- Implementing resource ownership — users can only access their own borrow records
+- Implementing resource ownership - users can only access their own borrow records
 - Building a borrowing system with duplicate protection using `AnyAsync`
 - Applying the Repository Pattern across multiple entities independently
 - Structuring a real-world API with public reads and protected writes
@@ -201,5 +198,5 @@ This project was built as an independent exercise after completing the guided Ta
 ## Author
 
 **Rethabile Eric Siase**
-Advanced Diploma in Information Technology — Central University of Technology, Free State
+Advanced Diploma in Information Technology - Central University of Technology, Free State
 GitHub: [@Rethabile2004](https://github.com/Rethabile2004)
