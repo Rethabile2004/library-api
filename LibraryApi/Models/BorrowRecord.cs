@@ -13,7 +13,7 @@ namespace LibraryApi.Models
         [DataType(DataType.Date)]
         public DateTime BorrowedAt { get; set; }
         [DataType(DataType.Date)]
-        [Required]
         public DateTime? ReturnedAt { get; set; }
+        public Book? Book { get; set; }
     }
 }

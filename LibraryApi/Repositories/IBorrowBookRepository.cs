@@ -11,7 +11,7 @@ namespace LibraryApi.Repositories
         Task DeleteAsync(BorrowRecord borrowRecord);
         Task<bool> IsBookCurrentlyBorrowedAsync(int bookId);
         Task<BorrowRecord?> GetActiveBorrowAsync(int id, int userId);
-        Task<BorrowRecord?> GetBookByIdAsync(int id);
+        Task<Book?> GetBookByIdAsync(int id);
         Task<bool> SaveChangesAsync();
     }
 }

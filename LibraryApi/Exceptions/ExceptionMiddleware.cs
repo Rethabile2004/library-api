@@ -2,7 +2,7 @@
 using System.Net;
 using System.Text.Json;
 
-namespace TaskFlowAPI.Middleware
+namespace LibraryApi.Middleware
 {
     public class ExceptionMiddleware
     {

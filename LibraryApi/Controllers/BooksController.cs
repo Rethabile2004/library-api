@@ -32,15 +32,24 @@ namespace LibraryApi.Controllers
             return Ok(pagedResult);
         }
         [HttpPost]
-        public async Task<ActionResult<BookResponseDto>>CreateBook(BookCreateDto createDto)
+        public async Task<ActionResult<BookResponseDto>> CreateBook(BookCreateDto createDto)
         {
+            var authorExists = await _bookRepository.AuthorExistsAsync(createDto.AuthorId);
+            if (!authorExists)
+            {
+                return NotFound(new { message = $"Author with id {createDto.AuthorId} does not exist." });
+            }
+
             var newBook = new Book
             {
-                Title=createDto.Title,
-                PublishedYear=createDto.PublishedYear,
-                Genre=createDto.Genre,
-                ISBN=createDto.ISBN,
+                Title = createDto.Title,
+                PublishedYear = createDto.PublishedYear,
+                Genre = createDto.Genre,
+                ISBN = createDto.ISBN,
+                AuthorId = createDto.AuthorId,
+                
             };
+
             await _bookRepository.CreateBookAsync(newBook);
             await _bookRepository.SaveChangesAsync();
 

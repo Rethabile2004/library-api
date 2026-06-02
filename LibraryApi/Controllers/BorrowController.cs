@@ -14,7 +14,7 @@ namespace LibraryApi.Controllers
     [Route("api/[controller]")]
     public class BorrowController:ControllerBase
     {
-        public readonly IBorrowBookRepository _borrowBook;
+        private readonly IBorrowBookRepository _borrowBook;
         private readonly ILogger<BorrowController> _logger;
         public BorrowController(IBorrowBookRepository borrowBook, ILogger<BorrowController> logger)
         {
@@ -86,7 +86,6 @@ namespace LibraryApi.Controllers
                 });
             }
             record.ReturnedAt = DateTime.UtcNow;
-
             await _borrowBook.UpdateAsync(record);
             await _borrowBook.SaveChangesAsync();
             _logger.LogInformation("User {UserId} returned a book {BookId}", GetUserId(), bookId);
@@ -106,7 +105,8 @@ namespace LibraryApi.Controllers
                 BorrowedAt = record.BorrowedAt,
                 Id = record.Id,
                 ReturnedAt = record.ReturnedAt,
-                UserId = record.UserId
+                BookISBN=record.Book?.ISBN,
+                BookTitle=record.Book?.Title
             };
         }
     }

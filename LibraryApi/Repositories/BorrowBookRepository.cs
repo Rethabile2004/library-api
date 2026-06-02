@@ -25,20 +25,18 @@ namespace LibraryApi.Repositories
 
         public async Task<IEnumerable<BorrowRecord>> GetAllAsync(int userId)
         {
-            return await _context.BorrowRecords.Where(r => r.UserId == userId).ToListAsync();
+            return await _context.BorrowRecords.Include(b=>b.Book).Where(r => r.UserId == userId).ToListAsync();
         }
 
         public Task<BorrowRecord?> GetByIdAsync(int id)
         {
-            return _context.BorrowRecords.FirstOrDefaultAsync(br=>br.Id==id);
+            return _context.BorrowRecords.Include(b=>b.Book).FirstOrDefaultAsync(br=>br.Id==id);
         }
 
         public async Task<BorrowRecord?> GetActiveBorrowAsync(int id, int userId)
         {
-            return await _context.BorrowRecords.FirstOrDefaultAsync(r =>
-            r.BookId == id &&
-            r.UserId == userId &&
-            r.ReturnedAt == null);
+            return await _context.BorrowRecords.Include(b => b.Book).
+                FirstOrDefaultAsync(r => r.BookId == id && r.UserId == userId && r.ReturnedAt == null);
         }
         public Task UpdateAsync(BorrowRecord borrowRecord)
         {
@@ -54,9 +52,9 @@ namespace LibraryApi.Repositories
             return await _context.BorrowRecords
                 .AnyAsync(r => r.BookId == bookId && r.ReturnedAt == null);
         }
-        public async Task<BorrowRecord?> GetBookByIdAsync(int id)
+        public async Task<Book?> GetBookByIdAsync(int id)
         {
-            return await _context.BorrowRecords.FirstOrDefaultAsync(r => r.Id == id);
+            return await _context.Books.FirstOrDefaultAsync(r => r.Id == id);
         }
     }
 }

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LibraryApi.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260601194944_UpdatedBorrowRecord")]
-    partial class UpdatedBorrowRecord
+    [Migration("20260602164846_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -75,17 +75,12 @@ namespace LibraryApi.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int?>("UserId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("AuthorId");
 
                     b.HasIndex("ISBN")
                         .IsUnique();
-
-                    b.HasIndex("UserId");
 
                     b.ToTable("Books");
                 });
@@ -104,13 +99,15 @@ namespace LibraryApi.Migrations
                     b.Property<DateTime>("BorrowedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime>("ReturnedAt")
+                    b.Property<DateTime?>("ReturnedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BookId");
 
                     b.ToTable("BorrowRecords");
                 });
@@ -156,13 +153,18 @@ namespace LibraryApi.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("LibraryApi.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId");
-
                     b.Navigation("Author");
+                });
 
-                    b.Navigation("User");
+            modelBuilder.Entity("LibraryApi.Models.BorrowRecord", b =>
+                {
+                    b.HasOne("LibraryApi.Models.Book", "Book")
+                        .WithMany()
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Book");
                 });
 
             modelBuilder.Entity("LibraryApi.Models.Author", b =>

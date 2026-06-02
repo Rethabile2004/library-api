@@ -16,7 +16,6 @@ namespace LibraryApi.Repositories
         {
             // base query
             var query = _context.Books.Include(a=>a.Author).AsQueryable();
-            query = query.Where(b => b.Id == userId);
             // apply filters
             if(!string.IsNullOrWhiteSpace(queryParameters.SearchTitle))
             {
@@ -37,8 +36,6 @@ namespace LibraryApi.Repositories
                 "title"=>query.OrderBy(b=>b.Title),
                 "publishedyear" => query.OrderBy(b=>b.PublishedYear),
                 "genre"=> query.OrderBy(b => b.Genre),
-
-                //"createdat"=>query.OrderByDescending(b=>b.CreatedAt),
                 _ => query.OrderBy(b => b.Id)
             };
             var books = await query.Skip((queryParameters.Page - 1) * queryParameters.PageSize)
@@ -60,14 +57,17 @@ namespace LibraryApi.Repositories
         public async Task<Book?> GetByIdAsync(int id, int userId)
         {
             return await _context.Books.Include(a => a.Author).
-                FirstOrDefaultAsync(b => b.Id == id && b.UserId == userId);
+                FirstOrDefaultAsync(b => b.Id == id);
         }
 
         public async Task<bool> SaveChangesAsync()
         {
             return await _context.SaveChangesAsync() > 0;
         }
-
+        public async Task<bool> AuthorExistsAsync(int authorId)
+        {
+            return await _context.Authors.AnyAsync(a => a.Id == authorId);
+        }
         public Task UpdateBookAsync(Book book)
         {
             _context.Books.Update(book);
