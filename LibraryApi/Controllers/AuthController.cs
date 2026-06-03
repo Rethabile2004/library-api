@@ -1,4 +1,5 @@
-﻿using LibraryApi.Data;
+﻿using Asp.Versioning;
+using LibraryApi.Data;
 using LibraryApi.DTO;
 using LibraryApi.Models;
 using LibraryApi.Services;
@@ -9,7 +10,8 @@ using Microsoft.EntityFrameworkCore;
 namespace LibraryApi.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _context;

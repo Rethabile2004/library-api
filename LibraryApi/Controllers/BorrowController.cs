@@ -1,17 +1,17 @@
-﻿using LibraryApi.DTO;
+﻿using Asp.Versioning;
+using LibraryApi.DTO;
 using LibraryApi.Models;
 using LibraryApi.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Serilog;
-using System.Net;
 using System.Security.Claims;
 
 namespace LibraryApi.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     public class BorrowController:ControllerBase
     {
         private readonly IBorrowBookRepository _borrowBook;

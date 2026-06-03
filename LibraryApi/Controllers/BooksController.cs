@@ -1,4 +1,5 @@
-﻿using LibraryApi.DTO;
+﻿using Asp.Versioning;
+using LibraryApi.DTO;
 using LibraryApi.Models;
 using LibraryApi.Repositories;
 using Microsoft.AspNetCore.Authorization;
@@ -8,7 +9,8 @@ using System.Security.Claims;
 namespace LibraryApi.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     public class BooksController:ControllerBase
     {
         private readonly IBookRepository _bookRepository;
