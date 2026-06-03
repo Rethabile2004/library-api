@@ -1,5 +1,3 @@
-
-
 # LibraryAPI
 
 A library management REST API built with ASP.NET Core Web API - featuring book and author management, JWT authentication, a borrowing system, pagination, filtering, and structured logging.
@@ -13,6 +11,7 @@ A library management REST API built with ASP.NET Core Web API - featuring book a
 - **Authentication:** JWT Bearer Tokens
 - **Logging:** Serilog (console + file sinks)
 - **ORM:** Entity Framework Core 8
+- **Versioning:** Asp.Versioning.Mvc
 
 ---
 
@@ -31,6 +30,7 @@ A library management REST API built with ASP.NET Core Web API - featuring book a
 - Global exception handling - consistent ProblemDetails responses
 - Structured logging - every request and auth event logged with Serilog
 - Data validation - enforced via Data Annotations on request DTOs
+- API versioning — URL segment strategy (`/api/v1/`) with version reporting headers
 
 ---
 
@@ -68,45 +68,45 @@ LibraryAPI/
 ### Auth
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
-| POST | `/api/auth/register` | Public | Create a new account |
-| POST | `/api/auth/login` | Public | Login and receive a JWT |
+| POST | `/api/v1/auth/register` | Public | Create a new account |
+| POST | `/api/v1/auth/login` | Public | Login and receive a JWT |
 
 ### Authors
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
-| GET | `/api/author` | Public | Get all authors (paginated) |
-| GET | `/api/author/{id}` | Public | Get a single author |
-| POST | `/api/author` | Protected | Create an author |
-| DELETE | `/api/author/{id}` | Protected | Delete an author |
+| GET | `/api/v1/author` | Public | Get all authors (paginated) |
+| GET | `/api/v1/author/{id}` | Public | Get a single author |
+| POST | `/api/v1/author` | Protected | Create an author |
+| DELETE | `/api/v1/author/{id}` | Protected | Delete an author |
 
 ### Books
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
-| GET | `/api/books` | Public | Get all books (paginated, filterable) |
-| GET | `/api/books/{id}` | Public | Get a single book |
-| POST | `/api/books` | Protected | Create a book |
-| PUT | `/api/books/{id}` | Protected | Update a book |
-| DELETE | `/api/books/{id}` | Protected | Delete a book |
+| GET | `/api/v1/books` | Public | Get all books (paginated, filterable) |
+| GET | `/api/v1/books/{id}` | Public | Get a single book |
+| POST | `/api/v1/books` | Protected | Create a book |
+| PUT | `/api/v1/books/{id}` | Protected | Update a book |
+| DELETE | `/api/v1/books/{id}` | Protected | Delete a book |
 
 ### Borrowing
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
-| GET | `/api/borrow/my-books` | Protected | View your borrow history |
-| GET | `/api/borrow/{id}` | Protected | Get a single borrow record |
-| POST | `/api/borrow/{bookId}` | Protected | Borrow a book |
-| PATCH | `/api/borrow/{bookId}/return` | Protected | Return a book |
+| GET | `/api/v1/borrow/my-books` | Protected | View your borrow history |
+| GET | `/api/v1/borrow/{id}` | Protected | Get a single borrow record |
+| POST | `/api/v1/borrow/{bookId}` | Protected | Borrow a book |
+| PATCH | `/api/v1/borrow/{bookId}/return` | Protected | Return a book |
 
 ---
 
 ## Query Parameters
 
 ```
-GET /api/books?searchTitle=war
-GET /api/books?genre=Historical Fiction
-GET /api/books?publishedYear=1949
-GET /api/books?sortBy=title
-GET /api/books?page=1&pageSize=5
-GET /api/books?genre=Literary Fiction&sortBy=title&page=1&pageSize=5
+GET /api/v1/books?searchTitle=war
+GET /api/v1/books?genre=Historical Fiction
+GET /api/v1/books?publishedYear=1949
+GET /api/v1/books?sortBy=title
+GET /api/v1/books?page=1&pageSize=5
+GET /api/v1/books?genre=Literary Fiction&sortBy=title&page=1&pageSize=5
 ```
 
 ---
@@ -150,8 +150,8 @@ https://localhost:{port}/swagger
 
 **6. Seed the database:**
 ```
-GET /api/seed/authors
-GET /api/seed/books
+GET /api/v1/seed/authors
+GET /api/v1/seed/books
 ```
 
 ---
@@ -160,7 +160,7 @@ GET /api/seed/books
 
 Protected endpoints require a valid JWT. To authenticate:
 
-1. Register via `POST /api/auth/register`
+1. Register via `POST /api/v1/auth/register`
 2. Copy the token from the response
 3. Add it to your requests as a Bearer token:
 
@@ -170,13 +170,29 @@ Authorization: Bearer <your-token>
 
 ---
 
+## API Versioning
+
+LibraryAPI uses **URL segment versioning**. The current version is `v1`:
+
+```
+GET /api/v1/books
+POST /api/v1/auth/login
+```
+
+Responses include a header indicating all supported versions:
+```
+api-supported-versions: 1.0
+```
+
+---
+
 ## Borrowing Flow
 
 ```
-1. POST /api/borrow/{bookId}          → borrow a book
-2. GET  /api/borrow/my-books          → view your history
-3. PATCH /api/borrow/{bookId}/return  → return the book
-4. POST /api/borrow/{bookId}          → borrow it again
+1. POST /api/v1/borrow/{bookId}          → borrow a book
+2. GET  /api/v1/borrow/my-books          → view your history
+3. PATCH /api/v1/borrow/{bookId}/return  → return the book
+4. POST /api/v1/borrow/{bookId}          → borrow it again
 ```
 
 Attempting to borrow a book that is already borrowed returns `409 Conflict`.
@@ -192,6 +208,7 @@ This project was built as an independent exercise after completing the guided Ta
 - Building a borrowing system with duplicate protection using `AnyAsync`
 - Applying the Repository Pattern across multiple entities independently
 - Structuring a real-world API with public reads and protected writes
+- Adding URL segment versioning with `Asp.Versioning.Mvc` independently
 
 ---
 
