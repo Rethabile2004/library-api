@@ -1,14 +1,16 @@
-// Developed by Rethabile Eric Siase
+using Asp.Versioning;
 using LibraryApi.Data;
+using LibraryApi.Middleware;
 using LibraryApi.Repositories;
 using LibraryApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Serilog;
 using System.Text;
-using LibraryApi.Middleware;
-using Asp.Versioning;
+using System.Threading.RateLimiting;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -16,30 +18,66 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
-    Log.Information("LibraryIpi API starting up...");
+    Log.Information("Library API starting up...");
 
     var builder = WebApplication.CreateBuilder(args);
+
+    var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
+    var secretKey = builder.Configuration["JwtSettings:SecretKey"];
+    if (string.IsNullOrEmpty(secretKey))
+    {
+        Log.Fatal("JWT SecretKey missing — set JwtSettings__SecretKey env var.");
+        Log.CloseAndFlush();
+        throw new InvalidOperationException("JWT SecretKey is missing.");
+    }
 
     builder.Host.UseSerilog((context, services, configuration) => configuration
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
-
         .WriteTo.Console(
             outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
-
         .WriteTo.File(
             path: "Logs/libraryapi-.log",
             rollingInterval: RollingInterval.Day,
             outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}",
-            retainedFileCountLimit: 7) 
-
+            retainedFileCountLimit: 7)
         .MinimumLevel.Information()
-
         .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
         .MinimumLevel.Override("Microsoft.Hosting.Lifetime", Serilog.Events.LogEventLevel.Information));
 
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
+
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+        options.AddFixedWindowLimiter("auth", limiterOptions =>
+        {
+            limiterOptions.PermitLimit = 5;
+            limiterOptions.Window = TimeSpan.FromMinutes(1);
+            limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            limiterOptions.QueueLimit = 0;
+        });
+
+        options.AddFixedWindowLimiter("write", limiterOptions =>
+        {
+            limiterOptions.PermitLimit = 30;
+            limiterOptions.Window = TimeSpan.FromMinutes(1);
+            limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            limiterOptions.QueueLimit = 0;
+        });
+
+        options.AddFixedWindowLimiter("read", limiterOptions =>
+        {
+            limiterOptions.PermitLimit = 100;
+            limiterOptions.Window = TimeSpan.FromMinutes(1);
+            limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+            limiterOptions.QueueLimit = 0;
+        });
+    });
 
     builder.Services.AddApiVersioning(options =>
     {
@@ -54,15 +92,89 @@ try
         options.SubstituteApiVersionInUrl = true;
     });
 
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(options =>
+    {
+        options.SwaggerDoc("v1", new OpenApiInfo
+        {
+            Title = "Library API",
+            Version = "v1",
+            Description = "A library management REST API with JWT authentication, " +
+                          "books, authors, and borrow tracking.",
+            Contact = new OpenApiContact
+            {
+                Name = "Rethabile Eric Siase",
+                Url = new Uri("https://github.com/Rethabile2004")
+            }
+        });
+
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "Bearer",
+            BearerFormat = "JWT",
+            In = ParameterLocation.Header,
+            Description = "Enter your JWT token. Example: eyJhbGci..."
+        });
+
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
+
+        var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+        if (File.Exists(xmlPath))
+        {
+            options.IncludeXmlComments(xmlPath);
+        }
+    });
+
+    var rawConn = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+    var connectionString = rawConn.StartsWith("postgresql://") || rawConn.StartsWith("postgres://")
+        ? $"Host={new Uri(rawConn).Host};Database={new Uri(rawConn).AbsolutePath.TrimStart('/')};Username={new Uri(rawConn).UserInfo.Split(':')[0]};Password={new Uri(rawConn).UserInfo.Split(':')[1]};SSL Mode=Require;Trust Server Certificate=true"
+        : rawConn;
 
     builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+        options.UseNpgsql(connectionString));
 
     builder.Services.AddScoped<ITokenService, TokenService>();
     builder.Services.AddScoped<IBookRepository, BookRepository>();
     builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
     builder.Services.AddScoped<IBorrowBookRepository, BorrowBookRepository>();
+
+    var allowedOrigins = builder.Configuration
+        .GetSection("AllowedOrigins")
+        .Get<string[]>() ?? Array.Empty<string>();
+
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("ReactAppPolicy", policy =>
+        {
+            if (builder.Environment.IsDevelopment())
+            {
+                policy.WithOrigins("http://localhost:5173")
+                      .AllowAnyHeader()
+                      .AllowAnyMethod();
+            }
+            else
+            {
+                policy.WithOrigins(allowedOrigins)
+                      .AllowAnyHeader()
+                      .AllowAnyMethod();
+            }
+        });
+    });
 
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
@@ -75,14 +187,27 @@ try
                 ValidAudience = builder.Configuration["JwtSettings:Audience"],
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]!)),
+                    Encoding.UTF8.GetBytes(secretKey)),
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             };
         });
 
-
     var app = builder.Build();
+
+    using (var scope = app.Services.CreateScope())
+    {
+        try
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.Database.Migrate();
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Database migration failed.");
+            throw;
+        }
+    }
 
     app.UseMiddleware<ExceptionMiddleware>();
 
@@ -92,16 +217,33 @@ try
             "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
     });
 
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Library API v1");
+        options.RoutePrefix = string.Empty;
+    });
+
     if (app.Environment.IsDevelopment())
     {
-        app.UseSwagger();
-        app.UseSwaggerUI();
+        app.UseHttpsRedirection();
     }
 
-    app.UseHttpsRedirection();
+    app.UseRateLimiter();
+    app.UseCors("ReactAppPolicy");
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
+
+    app.MapGet("/health", async (AppDbContext db) =>
+    {
+        var canConnect = await db.Database.CanConnectAsync();
+        return Results.Ok(new
+        {
+            status = canConnect ? "healthy" : "unhealthy",
+            timestamp = DateTime.UtcNow
+        });
+    });
 
     app.Run();
 }
