@@ -28,7 +28,7 @@ try
     var secretKey = builder.Configuration["JwtSettings:SecretKey"];
     if (string.IsNullOrEmpty(secretKey))
     {
-        Log.Fatal("JWT SecretKey missing — set JwtSettings__SecretKey env var.");
+        Log.Fatal("JWT SecretKey missing set JwtSettings__SecretKey env var.");
         Log.CloseAndFlush();
         throw new InvalidOperationException("JWT SecretKey is missing.");
     }
@@ -140,10 +140,8 @@ try
         }
     });
 
-    var rawConn = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
-    var connectionString = rawConn.StartsWith("postgresql://") || rawConn.StartsWith("postgres://")
-        ? $"Host={new Uri(rawConn).Host};Database={new Uri(rawConn).AbsolutePath.TrimStart('/')};Username={new Uri(rawConn).UserInfo.Split(':')[0]};Password={new Uri(rawConn).UserInfo.Split(':')[1]};SSL Mode=Require;Trust Server Certificate=true"
-        : rawConn;
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string is missing.");
 
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(connectionString));

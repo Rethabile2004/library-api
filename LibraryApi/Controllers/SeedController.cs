@@ -7,7 +7,7 @@ namespace LibraryApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[ApiExplorerSettings(IgnoreApi = true)]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public class SeedController : ControllerBase
     {
         private readonly AppDbContext _context;
