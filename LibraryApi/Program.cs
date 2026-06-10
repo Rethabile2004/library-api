@@ -149,9 +149,6 @@ try
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(connectionString));
 
-    builder.Services.AddDbContext<AppDbContext>(options =>
-        options.UseNpgsql(connectionString));
-
     builder.Services.AddScoped<ITokenService, TokenService>();
     builder.Services.AddScoped<IBookRepository, BookRepository>();
     builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
