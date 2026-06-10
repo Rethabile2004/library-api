@@ -140,21 +140,14 @@ try
         }
     });
 
-    var rawConn = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string is missing.");
+    var rawConn = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
 
-    string connectionString;
-    if (rawConn.StartsWith("postgresql://") || rawConn.StartsWith("postgres://"))
-    {
-        var uri = new Uri(rawConn);
-        var userInfo = uri.UserInfo.Split(':');
-        var localPort = uri.Port == -1 ? 5432 : uri.Port;
-        connectionString = $"Host={uri.Host};Port={localPort};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
-    }
-    else
-    {
-        connectionString = rawConn;
-    }
+    var connectionString = rawConn.StartsWith("postgresql://") || rawConn.StartsWith("postgres://")
+        ? $"Host={new Uri(rawConn).Host};Database={new Uri(rawConn).AbsolutePath.TrimStart('/')};Username={new Uri(rawConn).UserInfo.Split(':')[0]};Password={new Uri(rawConn).UserInfo.Split(':')[1]};SSL Mode=Require;Trust Server Certificate=true"
+        : rawConn;
+
+    builder.Services.AddDbContext<AppDbContext>(options =>
+        options.UseNpgsql(connectionString));
 
     builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseNpgsql(connectionString));
