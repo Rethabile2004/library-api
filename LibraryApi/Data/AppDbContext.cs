@@ -10,11 +10,9 @@ namespace LibraryApi.Data
         public DbSet<Book> Books { get; set; }
         public DbSet<Author> Authors { get; set; }
         public DbSet<BorrowRecord> BorrowRecords { get; set; }
-
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.HasDefaultSchema("library");
-            base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
             // Two books cannot share the same ISBN
             modelBuilder.Entity<Book>()
