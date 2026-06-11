@@ -1,4 +1,4 @@
-using Asp.Versioning;
+﻿using Asp.Versioning;
 using LibraryApi.Data;
 using LibraryApi.Middleware;
 using LibraryApi.Repositories;
@@ -158,9 +158,14 @@ try
         .GetSection("AllowedOrigins")
         .Get<string[]>() ?? Array.Empty<string>();
 
+    //if (!builder.Environment.IsDevelopment() && allowedOrigins.Length == 0)
+    //{
+    //    throw new InvalidOperationException("AllowedOrigins must be configured in production.");
+    //}
+
     builder.Services.AddCors(options =>
     {
-        options.AddPolicy("ReactAppPolicy", policy =>
+        options.AddPolicy("AllowedOriginsPolicy", policy =>
         {
             if (builder.Environment.IsDevelopment())
             {
@@ -201,7 +206,18 @@ try
         try
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            Log.Information("Applying database migrations...");
+            var pending = db.Database.GetPendingMigrations().ToList();
+            Log.Information("Pending migrations: {Count}", pending.Count);
+            foreach (var m in pending)
+                Log.Information("  → {Migration}", m);
+
             db.Database.Migrate();
+
+            var applied = db.Database.GetAppliedMigrations().ToList();
+            Log.Information("Migration complete. Total applied: {Count}", applied.Count);
+            Log.Information("Last applied: {Migration}", applied.LastOrDefault() ?? "none");
         }
         catch (Exception ex)
         {
@@ -231,7 +247,7 @@ try
     }
 
     app.UseRateLimiter();
-    app.UseCors("ReactAppPolicy");
+    app.UseCors("AllowedOriginsPolicy"); 
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();
