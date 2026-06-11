@@ -12,7 +12,7 @@ namespace LibraryApi.Data
         public DbSet<BorrowRecord> BorrowRecords { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            modelBuilder.HasDefaultSchema("library");
+            //modelBuilder.HasDefaultSchema("library");
             modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
             // Two books cannot share the same ISBN
             modelBuilder.Entity<Book>()
