@@ -1,113 +1,103 @@
-# LibraryAPI
+# 📚 Library API
 
-A library management REST API built with ASP.NET Core Web API - featuring book and author management, JWT authentication, a borrowing system, pagination, filtering, and structured logging.
+A RESTful library management API built with **ASP.NET Core 8**, **PostgreSQL**, and **JWT authentication**. Supports full book and author management, a borrow/return system, API versioning, rate limiting, and structured logging — deployed live on Render.
+
+**Live:** [https://library-api-1-uxha.onrender.com](https://library-api-1-uxha.onrender.com/index.html)
 
 ---
 
 ## Tech Stack
 
-- **Framework:** ASP.NET Core Web API (.NET 8)
-- **Database:** SQL Server (EF Core Code First)
-- **Authentication:** JWT Bearer Tokens
-- **Logging:** Serilog (console + file sinks)
-- **ORM:** Entity Framework Core 8
-- **Versioning:** Asp.Versioning.Mvc
+| Layer | Technology |
+|---|---|
+| Framework | ASP.NET Core 8 Web API |
+| Database | PostgreSQL via EF Core (Npgsql) |
+| Auth | JWT Bearer tokens (BCrypt password hashing) |
+| Logging | Serilog (console + rolling file) |
+| Docs | Swagger / OpenAPI (Swashbuckle) |
+| Versioning | Asp.Versioning (URL segment) |
+| Rate Limiting | ASP.NET Core fixed-window limiters |
+| Hosting | Render (Docker) |
 
 ---
 
 ## Features
 
-- JWT authentication - register, login, token-based access
-- Author and book management with full CRUD
-- Borrowing system - borrow, return, and view borrow history
-- Duplicate borrow protection - a book cannot be borrowed twice simultaneously
-- User-scoped borrowing - users only see and manage their own borrow records
-- DTO pattern - request and response models separated from database models
-- Repository pattern - database logic decoupled from controllers
-- Filtering - books by genre, title keyword, and published year
-- Sorting - by title, genre, or published year
-- Pagination - configurable page size across all list endpoints
-- Global exception handling - consistent ProblemDetails responses
-- Structured logging - every request and auth event logged with Serilog
-- Data validation - enforced via Data Annotations on request DTOs
-- API versioning — URL segment strategy (`/api/v1/`) with version reporting headers
-
----
-
-## Project Structure
-
-```
-LibraryAPI/
-├── Controllers/          # HTTP layer - request handling and responses
-├── Data/                 # AppDbContext
-├── DTOs/                 # Request and response models
-├── Exceptions/           # Custom exception types
-├── Middleware/           # Global exception handling middleware
-├── Migrations/           # EF Core database migrations
-├── Models/               # Database entity models
-├── Repositories/         # Data access layer
-├── Services/             # Token generation service
-└── Logs/                 # Runtime log files (gitignored)
-```
-
----
-
-## Data Model
-
-| Entity | Description |
-|---|---|
-| `User` | Registered user - can borrow and return books |
-| `Author` | Book author with name and biography |
-| `Book` | Library book belonging to an author |
-| `BorrowRecord` | Tracks borrow and return dates per user per book |
+- **JWT Authentication** — register and login with BCrypt-hashed passwords; protected endpoints require a Bearer token
+- **Authors** — paginated listing, create, get by ID, delete
+- **Books** — paginated listing with title/genre/year filters, create, update, delete
+- **Borrow System** — borrow and return books with concurrency checks (prevents double-borrowing)
+- **API Versioning** — URL segment versioning (`/api/v1/...`), version reported in response headers
+- **Rate Limiting** — separate fixed-window limits for auth (5/min), write (30/min), and read (100/min) operations
+- **Structured Logging** — Serilog with request logging and daily rolling log files
+- **Health Check** — `/health` endpoint with live database connectivity check
+- **Database Seeding** — seed endpoints for authors and books to bootstrap initial data
 
 ---
 
 ## API Endpoints
 
+Base URL: `https://library-api-1-uxha.onrender.com/api/v1`
+
 ### Auth
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| POST | `/api/v1/auth/register` | Public | Create a new account |
-| POST | `/api/v1/auth/login` | Public | Login and receive a JWT |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/Auth/register` | Public | Register a new user |
+| POST | `/Auth/login` | Public | Login and receive a JWT |
 
 ### Authors
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/api/v1/author` | Public | Get all authors (paginated) |
-| GET | `/api/v1/author/{id}` | Public | Get a single author |
-| POST | `/api/v1/author` | Protected | Create an author |
-| DELETE | `/api/v1/author/{id}` | Protected | Delete an author |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/Author` | Public | List authors (paginated) |
+| GET | `/Author/{id}` | Public | Get author by ID |
+| POST | `/Author` | Required | Create an author |
+| DELETE | `/Author/{id}` | Required | Delete an author |
 
 ### Books
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/api/v1/books` | Public | Get all books (paginated, filterable) |
-| GET | `/api/v1/books/{id}` | Public | Get a single book |
-| POST | `/api/v1/books` | Protected | Create a book |
-| PUT | `/api/v1/books/{id}` | Protected | Update a book |
-| DELETE | `/api/v1/books/{id}` | Protected | Delete a book |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/Books` | Public | List books (paginated + filters) |
+| GET | `/Books/{id}` | Public | Get book by ID |
+| POST | `/Books` | Required | Create a book |
+| PUT | `/Books/{id}` | Required | Update a book |
+| DELETE | `/Books/{id}` | Required | Delete a book |
 
 ### Borrowing
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| GET | `/api/v1/borrow/my-books` | Protected | View your borrow history |
-| GET | `/api/v1/borrow/{id}` | Protected | Get a single borrow record |
-| POST | `/api/v1/borrow/{bookId}` | Protected | Borrow a book |
-| PATCH | `/api/v1/borrow/{bookId}/return` | Protected | Return a book |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/Borrow/my-books` | Required | Get your borrow history |
+| GET | `/Borrow/{id}` | Required | Get a borrow record by ID |
+| POST | `/Borrow/{bookId}` | Required | Borrow a book |
+| PATCH | `/Borrow/{bookId}/return` | Required | Return a borrowed book |
+
+### Other
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/health` | Database connectivity check |
 
 ---
 
 ## Query Parameters
 
-```
-GET /api/v1/books?searchTitle=war
-GET /api/v1/books?genre=Historical Fiction
-GET /api/v1/books?publishedYear=1949
-GET /api/v1/books?sortBy=title
-GET /api/v1/books?page=1&pageSize=5
-GET /api/v1/books?genre=Literary Fiction&sortBy=title&page=1&pageSize=5
-```
+**Books** (`GET /api/v1/Books`)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `searchTitle` | string | — | Filter by title (partial match) |
+| `genre` | string | — | Filter by genre (case-insensitive) |
+| `publishedYear` | int | — | Filter by year |
+| `sortBy` | string | `id` | Sort by `id`, `title`, `publishedYear`, `genre` |
+| `page` | int | `1` | Page number |
+| `pageSize` | int | `10` | Results per page (max 50) |
+
+**Authors** (`GET /api/v1/Author`)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `searchName` | string | — | Filter by name |
+| `sortBy` | string | `id` | Sort field |
+| `page` | int | `1` | Page number |
+| `pageSize` | int | `10` | Results per page (max 50) |
 
 ---
 
@@ -115,105 +105,162 @@ GET /api/v1/books?genre=Literary Fiction&sortBy=title&page=1&pageSize=5
 
 ### Prerequisites
 - .NET 8 SDK
-- SQL Server or SQL Server LocalDB
-- Thunder Client / Postman
+- PostgreSQL
 
-### Setup
+### Local Setup
 
-**1. Clone the repository:**
+1. Clone the repo:
 ```bash
-git clone https://github.com/Rethabile2004/library-api.git
-cd library-api
+git clone https://github.com/Rethabile2004/LibraryAPI.git
+cd LibraryAPI
 ```
 
-**2. Update the connection string in `appsettings.json`:**
+2. Configure your environment in `appsettings.Development.json` or via environment variables:
 ```json
-"ConnectionStrings": {
-  "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=LibraryApiDb;Trusted_Connection=True;"
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Database=librarydb;Username=postgres;Password=yourpassword"
+  },
+  "JwtSettings": {
+    "SecretKey": "your-secret-key-min-32-chars",
+    "Issuer": "LibraryApi",
+    "Audience": "LibraryApiUsers",
+    "ExpiryHours": 24
+  },
+  "AllowedOrigins": ["http://localhost:5173"]
 }
 ```
 
-**3. Apply migrations:**
+3. Run the API:
 ```bash
-dotnet ef database update
+dotnet run --project LibraryApi/LibraryApi.csproj
 ```
 
-**4. Run the project:**
+Migrations are applied automatically on startup. Swagger UI opens at `http://localhost:8080`.
+
+### Seed Initial Data
+
+Run these in order to populate the database:
+```
+GET /api/Seed/authors
+GET /api/Seed/books
+```
+
+> **Note:** Seed authors before books — the book seed data references author IDs 1–10.
+
+---
+
+## Usage Examples
+
+### Register
 ```bash
-dotnet run
+curl -X POST "https://library-api-1-uxha.onrender.com/api/v1/Auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "user@example.com", "fullName": "Your Name", "password": "StrongPassword123" }'
 ```
 
-**5. Open Swagger UI:**
-```
-https://localhost:{port}/swagger
-```
-
-**6. Seed the database:**
-```
-GET /api/v1/seed/authors
-GET /api/v1/seed/books
+### Login
+```bash
+curl -X POST "https://library-api-1-uxha.onrender.com/api/v1/Auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{ "email": "user@example.com", "password": "StrongPassword123" }'
 ```
 
----
-
-## Authentication
-
-Protected endpoints require a valid JWT. To authenticate:
-
-1. Register via `POST /api/v1/auth/register`
-2. Copy the token from the response
-3. Add it to your requests as a Bearer token:
-
-```
-Authorization: Bearer <your-token>
+### List Books with Filters
+```bash
+curl "https://library-api-1-uxha.onrender.com/api/v1/Books?genre=fiction&page=1&pageSize=5"
 ```
 
----
-
-## API Versioning
-
-LibraryAPI uses **URL segment versioning**. The current version is `v1`:
-
-```
-GET /api/v1/books
-POST /api/v1/auth/login
+### Borrow a Book
+```bash
+curl -X POST "https://library-api-1-uxha.onrender.com/api/v1/Borrow/1" \
+  -H "Authorization: Bearer <YOUR_TOKEN>"
 ```
 
-Responses include a header indicating all supported versions:
-```
-api-supported-versions: 1.0
+### Return a Book
+```bash
+curl -X PATCH "https://library-api-1-uxha.onrender.com/api/v1/Borrow/1/return" \
+  -H "Authorization: Bearer <YOUR_TOKEN>"
 ```
 
 ---
 
-## Borrowing Flow
+## Docker
 
-```
-1. POST /api/v1/borrow/{bookId}          → borrow a book
-2. GET  /api/v1/borrow/my-books          → view your history
-3. PATCH /api/v1/borrow/{bookId}/return  → return the book
-4. POST /api/v1/borrow/{bookId}          → borrow it again
-```
+```bash
+docker build -t library-api .
 
-Attempting to borrow a book that is already borrowed returns `409 Conflict`.
+docker run --rm \
+  -e PORT=8080 \
+  -e JwtSettings__SecretKey="your-secret" \
+  -e ConnectionStrings__DefaultConnection="your-connection-string" \
+  -e AllowedOrigins__0="https://your-frontend.com" \
+  -p 8080:8080 \
+  library-api
+```
 
 ---
 
-## What I Learned Building This
+## Project Structure
 
-This project was built as an independent exercise after completing the guided TaskFlow API, applying the same patterns from scratch in a new domain:
+```
+LibraryApi/
+├── Controllers/
+│   ├── AuthController.cs
+│   ├── AuthorController.cs
+│   ├── BooksController.cs
+│   ├── BorrowController.cs
+│   └── SeedController.cs
+├── Data/
+│   └── AppDbContext.cs
+├── DTO/
+│   └── (request/response DTOs, query parameters, PagedResult)
+├── Middleware/
+│   └── ExceptionMiddleware.cs
+├── Repositories/
+│   └── (BookRepository, AuthorRepository, BorrowBookRepository + interfaces)
+├── Services/
+│   └── TokenService.cs
+├── Migrations/
+├── Logs/
+└── Program.cs
+```
 
-- Designing one-to-many and many-to-many adjacent relationships in EF Core
-- Implementing resource ownership - users can only access their own borrow records
-- Building a borrowing system with duplicate protection using `AnyAsync`
-- Applying the Repository Pattern across multiple entities independently
-- Structuring a real-world API with public reads and protected writes
-- Adding URL segment versioning with `Asp.Versioning.Mvc` independently
+---
+
+## Error Handling
+
+All errors return `application/problem+json`:
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc7231#section-6.5.4",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "Book with id 99 was not found.",
+  "traceId": "00-abc123..."
+}
+```
+
+| Status | Meaning |
+|--------|---------|
+| 400 | Bad request / validation error |
+| 401 | Missing or invalid JWT |
+| 403 | Authenticated but not authorized |
+| 404 | Resource not found |
+| 409 | Conflict (e.g. book already borrowed, duplicate email) |
+| 429 | Rate limit exceeded |
+| 500 | Internal server error |
 
 ---
 
 ## Author
 
 **Rethabile Eric Siase**
-Advanced Diploma in Information Technology - Central University of Technology, Free State
 GitHub: [@Rethabile2004](https://github.com/Rethabile2004)
+
+---
+
+## License
+
+MIT
