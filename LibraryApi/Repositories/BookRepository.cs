@@ -12,7 +12,7 @@ namespace LibraryApi.Repositories
         {
             _context = context;
         }
-        public async Task<(IEnumerable<Book> Books, int TotalCount)>GetAllAsync(BookQueryParameters queryParameters,int userId)
+        public async Task<(IEnumerable<Book> Books, int TotalCount)>GetAllAsync(BookQueryParameters queryParameters)
         {
             // base query
             var query = _context.Books.Include(a=>a.Author).AsQueryable();
@@ -54,7 +54,7 @@ namespace LibraryApi.Repositories
             return Task.CompletedTask;
         }
 
-        public async Task<Book?> GetByIdAsync(int id, int userId)
+        public async Task<Book?> GetByIdAsync(int id)
         {
             return await _context.Books.Include(a => a.Author).
                 FirstOrDefaultAsync(b => b.Id == id);

@@ -35,8 +35,7 @@ namespace LibraryApi.Controllers
         [ProducesResponseType(typeof(PagedResult<BookResponseDto>), StatusCodes.Status200OK)]
         public async Task<ActionResult<PagedResult<BookResponseDto>>> GetAllBooks([FromQuery] BookQueryParameters bookQueryParameters)
         {
-            var userId = GetCurrentUserId();
-            var (books, totalCount) = await _bookRepository.GetAllAsync(bookQueryParameters, userId);
+            var (books, totalCount) = await _bookRepository.GetAllAsync(bookQueryParameters);
             var pagedResult = new PagedResult<BookResponseDto>
             {
                 Page = bookQueryParameters.Page,
@@ -60,10 +59,9 @@ namespace LibraryApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<BookResponseDto>> GetBookById(int id)
         {
-            var userId = GetCurrentUserId();
-            var book = await _bookRepository.GetByIdAsync(id, userId);
+            var book = await _bookRepository.GetByIdAsync(id);
             if (book == null) return NotFound();
-            return Ok(MapToResponse(book!));
+            return Ok(MapToResponse(book));
         }
 
         /// <summary>
@@ -118,8 +116,7 @@ namespace LibraryApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> UpdateBook(int id, BookCreateDto book)
         {
-            var userId = GetCurrentUserId();
-            var existingBook = await _bookRepository.GetByIdAsync(id, userId);
+            var existingBook = await _bookRepository.GetByIdAsync(id);
             if (existingBook == null) return NotFound();
 
             existingBook.ISBN = book.ISBN;
@@ -149,19 +146,13 @@ namespace LibraryApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> DeleteBook(int id)
         {
-            var userId = GetCurrentUserId();
-            var book = await _bookRepository.GetByIdAsync(id, userId);
+            var book = await _bookRepository.GetByIdAsync(id);
             if (book == null) return NotFound();
 
             await _bookRepository.DeleteBookAsync(book);
             await _bookRepository.SaveChangesAsync();
 
             return NoContent();
-        }
-
-        private int GetCurrentUserId()
-        {
-            return int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         }
 
         private static BookResponseDto MapToResponse(Book book)

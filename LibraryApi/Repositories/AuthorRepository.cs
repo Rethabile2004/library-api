@@ -48,5 +48,9 @@ namespace LibraryApi.Repositories
         {
             return await _context.SaveChangesAsync() > 0;
         }
+        public async Task<bool> HasBooksAsync(int id)
+        {
+            return await _context.Books.AnyAsync(b => b.AuthorId == id);
+        }
     }
 }

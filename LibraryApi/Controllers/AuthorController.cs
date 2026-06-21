@@ -60,7 +60,7 @@ namespace LibraryApi.Controllers
         {
             var existing = await _repository.GetByIdAsync(id);
             if (existing == null) return NotFound();
-            return Ok(existing);
+            return Ok(MaptoResponse(existing));
         }
 
         /// <summary>
@@ -94,6 +94,7 @@ namespace LibraryApi.Controllers
         /// <returns>No content on success.</returns>
         /// <response code="204">Author deleted successfully.</response>
         /// <response code="401">Authentication required.</response>
+        /// <response code="409">Author has existing books and cannot be deleted.</response>
         /// <response code="404">Author not found.</response>
         [Authorize]
         [HttpDelete("{id}")]
@@ -101,16 +102,21 @@ namespace LibraryApi.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<ActionResult> DeleteAuthor(int id)
         {
             var existing = await _repository.GetByIdAsync(id);
             if (existing == null) return NotFound();
+
+            var hasBooks = await _repository.HasBooksAsync(id);
+            if (hasBooks) return Conflict(new { message = "Cannot remove an author with existing books." });
+
             await _repository.DeleteAsync(existing);
             await _repository.SaveChangesAsync();
             return NoContent();
         }
 
-        private AuthorResponseDto MaptoResponse(Author author)
+        private static AuthorResponseDto MaptoResponse(Author author)
         {
             return new AuthorResponseDto
             {

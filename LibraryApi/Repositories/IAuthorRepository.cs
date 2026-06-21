@@ -10,5 +10,6 @@ namespace LibraryApi.Repositories
         Task<Author> CreateAsync(Author author);
         Task DeleteAsync(Author author);
         Task<bool> SaveChangesAsync();
+        Task<bool> HasBooksAsync(int id);
     }
 }
