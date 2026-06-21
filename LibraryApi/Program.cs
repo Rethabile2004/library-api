@@ -241,10 +241,10 @@ try
         options.RoutePrefix = string.Empty;
     });
 
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseHttpsRedirection();
-    }
+    //if (app.Environment.IsDevelopment())
+    //{
+    //    app.UseHttpsRedirection();
+    //}
 
     app.UseRateLimiter();
     app.UseCors("AllowedOriginsPolicy"); 

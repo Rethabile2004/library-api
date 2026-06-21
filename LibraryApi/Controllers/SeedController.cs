@@ -7,22 +7,24 @@ namespace LibraryApi.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    //[ApiExplorerSettings(IgnoreApi = true)]
+    [ApiExplorerSettings(IgnoreApi = true)]
     public class SeedController : ControllerBase
     {
         private readonly AppDbContext _context;
-
-        public SeedController(AppDbContext context)
+        private readonly IWebHostEnvironment _env;
+        public SeedController(AppDbContext context, IWebHostEnvironment env)
         {
             _context = context;
+            _env = env;
         }
 
-        [HttpGet("authors")]
+        [HttpPost("authors")]
         public async Task<ActionResult> SeedAuthors()
         {
+            if (!_env.IsDevelopment()) return NotFound();
             if (_context.Authors.Any())
             {
-                return BadRequest(new { message = "Authors already seeded." });
+                return Conflict(new { message = "Authors already seeded." });
             }
 
             var authors = new List<Author>
@@ -85,14 +87,16 @@ namespace LibraryApi.Controllers
             return Ok(new { message = $"{authors.Count} authors seeded successfully." });
         }
 
-        [HttpGet("books")]
+        [HttpPost("books")]
         public async Task<ActionResult> SeedBooks()
         {
+            if (!_env.IsDevelopment()) return NotFound();
+
             if (_context.Books.Any())
             {
                 var count = await _context.Books.CountAsync();
 
-                return BadRequest(new { message = "Books already seeded.", count = count });
+                return Conflict(new { message = "Books already seeded.", count = count });
             }
 
             var books = new List<Book>

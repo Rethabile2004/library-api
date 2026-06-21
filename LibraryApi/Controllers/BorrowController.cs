@@ -47,19 +47,17 @@ namespace LibraryApi.Controllers
         /// <returns>The borrow record matching the given ID.</returns>
         /// <response code="200">Returns the borrow record.</response>
         /// <response code="401">Authentication required.</response>
-        /// <response code="403">Record belongs to a different user.</response>
         /// <response code="404">Borrow record not found.</response>
         [HttpGet("{id}")]
         [EnableRateLimiting("read")]
         [ProducesResponseType(typeof(BorrowRecordResponseDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<BorrowRecordResponseDto>> GetRecordById(int id)
         {
             var existing = await _borrowBook.GetByIdAsync(id);
             if (existing == null) return NotFound();
-            if (existing.UserId != GetUserId()) return Forbid();
+            if (existing.UserId != GetUserId()) return NotFound();
             return Ok(MapToResponse(existing));
         }
 
@@ -80,31 +78,33 @@ namespace LibraryApi.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         public async Task<ActionResult<BorrowRecordResponseDto>> BorrowBook(int bookId)
         {
+            var userId = GetUserId();
+
             var book = await _borrowBook.GetBookByIdAsync(bookId);
             if (book == null)
             {
-                _logger.LogWarning("User {UserId} attempted to borrow unavailable book {BookId}", GetUserId(), bookId);
+                _logger.LogWarning("User {UserId} attempted to borrow unavailable book {BookId}", userId, bookId);
                 return NotFound(new { message = "Book not found." });
             }
 
             var alreadyBorrowed = await _borrowBook.IsBookCurrentlyBorrowedAsync(bookId);
             if (alreadyBorrowed)
             {
-                _logger.LogWarning("User {UserId} attempted to borrow a currently borrowed book {BookId}", GetUserId(), bookId);
+                _logger.LogWarning("User {UserId} attempted to borrow a currently borrowed book {BookId}", userId, bookId);
                 return Conflict(new { message = "This book is currently borrowed." });
             }
 
             var newRecord = new BorrowRecord
             {
                 BookId = bookId,
-                UserId = GetUserId(),
+                UserId = userId,
                 BorrowedAt = DateTime.UtcNow,
                 ReturnedAt = null
             };
 
             await _borrowBook.BorrowAsync(newRecord);
             await _borrowBook.SaveChangesAsync();
-            _logger.LogInformation("Book borrowed. UserId={UserId}, BookId={BookId}", GetUserId(), bookId);
+            _logger.LogInformation("Book borrowed. UserId={UserId}, BookId={BookId}", userId, bookId);
 
             return CreatedAtAction(nameof(GetRecordById), new { id = newRecord.Id }, MapToResponse(newRecord));
         }
@@ -124,17 +124,19 @@ namespace LibraryApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<BorrowRecordResponseDto>> ReturnBook(int bookId)
         {
-            var record = await _borrowBook.GetActiveBorrowAsync(bookId, GetUserId());
+            var userId = GetUserId();
+
+            var record = await _borrowBook.GetActiveBorrowAsync(bookId, userId);
             if (record == null)
             {
-                _logger.LogWarning("User {UserId} attempted to return non-existing book {BookId}", GetUserId(), bookId);
+                _logger.LogWarning("User {UserId} attempted to return book {BookId} with no active borrow record", userId, bookId);
                 return NotFound(new { message = "Active borrow record not found." });
             }
 
             record.ReturnedAt = DateTime.UtcNow;
             await _borrowBook.UpdateAsync(record);
             await _borrowBook.SaveChangesAsync();
-            _logger.LogInformation("User {UserId} returned a book {BookId}", GetUserId(), bookId);
+            _logger.LogInformation("User {UserId} returned a book {BookId}", userId, bookId);
 
             return Ok(MapToResponse(record));
         }
