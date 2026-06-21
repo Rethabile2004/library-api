@@ -24,14 +24,14 @@ A RESTful library management API built with **ASP.NET Core 8**, **PostgreSQL**, 
 ## Features
 
 - **JWT Authentication** — register and login with BCrypt-hashed passwords; protected endpoints require a Bearer token
-- **Authors** — paginated listing, create, get by ID, delete
-- **Books** — paginated listing with title/genre/year filters, create, update, delete
-- **Borrow System** — borrow and return books with concurrency checks (prevents double-borrowing)
+- **Authors** — paginated listing, create, get by ID, delete (blocked if the author has existing books)
+- **Books** — paginated listing with title/genre/year filters, create, update, delete; public read access, authenticated write access
+- **Borrow System** — borrow and return books with concurrency checks (prevents double-borrowing); borrow records are scoped to the authenticated user
 - **API Versioning** — URL segment versioning (`/api/v1/...`), version reported in response headers
 - **Rate Limiting** — separate fixed-window limits for auth (5/min), write (30/min), and read (100/min) operations
 - **Structured Logging** — Serilog with request logging and daily rolling log files
 - **Health Check** — `/health` endpoint with live database connectivity check
-- **Database Seeding** — seed endpoints for authors and books to bootstrap initial data
+- **Database Seeding** — dev-only seed endpoints for authors and books to bootstrap initial data
 
 ---
 
@@ -51,7 +51,7 @@ Base URL: `https://library-api-1-uxha.onrender.com/api/v1`
 | GET | `/Author` | Public | List authors (paginated) |
 | GET | `/Author/{id}` | Public | Get author by ID |
 | POST | `/Author` | Required | Create an author |
-| DELETE | `/Author/{id}` | Required | Delete an author |
+| DELETE | `/Author/{id}` | Required | Delete an author — returns `409` if the author has existing books |
 
 ### Books
 | Method | Endpoint | Auth | Description |
@@ -66,8 +66,8 @@ Base URL: `https://library-api-1-uxha.onrender.com/api/v1`
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | GET | `/Borrow/my-books` | Required | Get your borrow history |
-| GET | `/Borrow/{id}` | Required | Get a borrow record by ID |
-| POST | `/Borrow/{bookId}` | Required | Borrow a book |
+| GET | `/Borrow/{id}` | Required | Get a borrow record by ID — returns `404` if it doesn't exist or doesn't belong to you |
+| POST | `/Borrow/{bookId}` | Required | Borrow a book — returns `409` if currently borrowed |
 | PATCH | `/Borrow/{bookId}/return` | Required | Return a borrowed book |
 
 ### Other
@@ -115,38 +115,38 @@ git clone https://github.com/Rethabile2004/LibraryAPI.git
 cd LibraryAPI
 ```
 
-2. Configure your environment in `appsettings.Development.json` or via environment variables:
+2. Create `appsettings.Development.json` in the project root (same level as `Program.cs`) — this file is gitignored and never committed:
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Database=librarydb;Username=postgres;Password=yourpassword"
+    "DefaultConnection": "Host=localhost;Port=5432;Database=LibraryApiDb;Username=postgres;Password=YOUR_PASSWORD"
   },
   "JwtSettings": {
-    "SecretKey": "your-secret-key-min-32-chars",
-    "Issuer": "LibraryApi",
-    "Audience": "LibraryApiUsers",
-    "ExpiryHours": 24
-  },
-  "AllowedOrigins": ["http://localhost:5173"]
+    "SecretKey": "YOUR_32_CHAR_MINIMUM_SECRET_KEY"
+  }
 }
 ```
 
-3. Run the API:
+> `Issuer`, `Audience`, `ExpiryHours`, and `Logging` settings already live in the committed `appsettings.json` — no need to repeat them here.
+
+3. Apply migrations and run:
 ```bash
+dotnet ef database update
 dotnet run --project LibraryApi/LibraryApi.csproj
 ```
 
-Migrations are applied automatically on startup. Swagger UI opens at `http://localhost:8080`.
+Migrations also apply automatically on startup if you skip step 3's first command. Swagger UI opens at `http://localhost:8080`.
 
 ### Seed Initial Data
 
-Run these in order to populate the database:
-```
-GET /api/Seed/authors
-GET /api/Seed/books
+Dev-only endpoints, hidden from Swagger UI and only reachable when running in `Development`:
+
+```bash
+curl -X POST http://localhost:8080/api/Seed/authors
+curl -X POST http://localhost:8080/api/Seed/books
 ```
 
-> **Note:** Seed authors before books — the book seed data references author IDs 1–10.
+> **Note:** Seed authors before books — the book seed data references author IDs 1–10. Re-running either endpoint after data already exists returns `409 Conflict`.
 
 ---
 
@@ -246,11 +246,16 @@ All errors return `application/problem+json`:
 |--------|---------|
 | 400 | Bad request / validation error |
 | 401 | Missing or invalid JWT |
-| 403 | Authenticated but not authorized |
-| 404 | Resource not found |
-| 409 | Conflict (e.g. book already borrowed, duplicate email) |
+| 404 | Resource not found, or not accessible to the current user |
+| 409 | Conflict (e.g. book already borrowed, duplicate email, author has existing books) |
 | 429 | Rate limit exceeded |
 | 500 | Internal server error |
+
+---
+
+## Roadmap
+
+- [ ] Role-based access control (Admin / Member) via ASP.NET Identity — restrict book/author write operations to Admins
 
 ---
 
